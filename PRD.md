@@ -255,7 +255,89 @@ Next.js App (Railway — persistent Node.js process)
 
 ---
 
-## 12. Open Questions
+## 12. Palmetto Energy Intelligence API — Evaluation
+
+This section reflects direct experience building on `POST /api/v0/bem/calculate` — the single endpoint that powers all of Wattprint's energy data.
+
+---
+
+### What the API does exceptionally well
+
+**1. Address-only input is a genuine superpower.**
+No property ID lookup, no pre-registration, no building spec questionnaire. Pass a street address and get a full energy model back. For a consumer product, this is the only workable UX. Any API that requires a prior property lookup step loses most of the audience.
+
+**2. The `variables: 'all_non_zero'` flag eliminates guesswork.**
+Instead of having to enumerate every field you want, you request all non-zero variables and get a rich flat object back. This made initial exploration fast and meant we didn't miss available fields. It's the right default for a data discovery API.
+
+**3. End-use disaggregation is rare and valuable.**
+The response breaks consumption down by end-use: `consumption.electricity.heating`, `consumption.electricity.cooling`, `consumption.electricity.hot_water`, `consumption.electricity.plug_loads`, `consumption.electricity.lighting`, `consumption.electricity.cooking_range`. Most energy APIs return only total consumption. Disaggregation is what makes upgrade prioritization possible — you can't tell someone to replace their HVAC if you don't know what percentage HVAC is of their bill.
+
+**4. Fossil fuel tracking is first-class.**
+`consumption.fossil_fuel`, `costs.fossil_fuel`, `emissions.fossil_fuel` are returned alongside electric equivalents. This is critical for gas-home analysis and electrification modeling. Many energy APIs are electric-only.
+
+**5. Emissions data is built in.**
+`emissions.electricity` and `emissions.fossil_fuel` in kg CO₂ — no secondary lookup required. Clean and directly usable for carbon reporting.
+
+**6. Monthly granularity with `group_by: 'month'` is chart-ready.**
+12 monthly intervals come back cleanly and map directly to a bar chart without any post-processing. The `group_by: 'year'` alternative collapses to a single row for quick annual totals.
+
+**7. The `interval_format: 'wide'` is machine-friendly.**
+A flat key-value structure with dot-notation paths (`{"consumption.electricity.heating": 1234}`) is easy to iterate, sum, and map. Avoids deeply nested JSON traversal.
+
+---
+
+### Where the API has room to grow (V0 honest feedback)
+
+**1. Scenario modeling is not actually in the API — we built it ourselves.**
+The `run_upgrade_scenario` tool in Wattprint's MCP server doesn't call Palmetto. It's pure client-side math using industry-average COPs, peak sun hours, and static upgrade costs. We prepared `scenarioPayload()` in `palmetto.ts` using the `consumption.hypothetical` and `production` request parameters, but the response field mapping for scenario outputs was ambiguous enough that we fell back to our own formulas.
+
+This is the biggest gap. The API *can* accept hypothetical scenario parameters (e.g., `heating_fuel: 'Electric'`, `heat_pump: true`, `pv_arrays`), but the response fields for scenario savings aren't documented clearly enough to trust for production without significant trial and error. A first-class `POST /scenarios/calculate` endpoint with explicit before/after cost fields would let us eliminate all our hardcoded approximations and use real building-science outputs for every home.
+
+**2. Upgrade costs and install estimates are missing.**
+`UPGRADE_COSTS` in Wattprint is a hardcoded table: `solar_5kw: $15,000`, `heat_pump_hvac: $12,000`, etc. These are national averages and will be wrong for any specific market. If the API returned ZIP-code-adjusted cost estimates — even ranges — the ROI and payback calculations would be materially more accurate. Palmetto has contractor network data that could power this.
+
+**3. Incentive data isn't part of the API.**
+Federal incentives are a hardcoded IRA lookup table we maintain ourselves. State incentives call the Rewiring America API (a separate third-party service with its own key and auth). Utility rebates are a static 7-state table we wrote manually. A unified `GET /incentives?zip={zip}&upgrades={types}` endpoint from Palmetto would eliminate three separate data sources and keep incentive data current without developer maintenance.
+
+**4. No address validation endpoint.**
+Before running a full `bem/calculate` (which takes 5–15 seconds and costs an API call), there's no cheap way to check if Palmetto has coverage for an address. Adding a lightweight `POST /addresses/validate` that returns `{supported: true/false, coverage_confidence: 'high'|'medium'|'low'}` would let us fail fast with a clear user message instead of burning a full calculation on an unsupported address.
+
+**5. The date range is hardcoded and must be manually maintained.**
+`from_datetime` and `to_datetime` are required parameters. There's no `"latest 12 months"` shorthand. In Wattprint, we hardcode `2024-01-01` to `2025-01-01` — meaning the data ages without any flag or error. An optional `period: 'trailing_12_months'` parameter would solve this entirely.
+
+**6. Field discovery requires trial and error.**
+The wide-format response is developer-friendly once you know the field names, but there's no published schema for what `variables: 'all_non_zero'` can return. Building Wattprint required running calls against known addresses and logging raw responses to discover fields like `costs.fossil_fuel`, `emissions.electricity`, and `consumption.electricity.cooking_range`. An OpenAPI spec or even a reference response object in documentation would cut integration time significantly.
+
+**7. Utility name is not in the response.**
+We know the utility from `utility_name` in the report — but that field comes from Claude's inference, not the API. The `bem/calculate` response doesn't include the serving utility. For routing customers to utility rebate programs, this is a meaningful gap. `utility_name` and `utility_id` in the baseline response would remove the need to ask the agent to guess.
+
+**8. No property characteristics in the response.**
+The model infers building specs from the address (square footage, construction year, HVAC type, insulation grade, etc.) but doesn't expose them. Showing users the model's assumptions — and letting them correct them — would increase trust and accuracy. Even a `model_inputs` object in the response with the inferred specs would be valuable.
+
+**9. V0 means no stability guarantees.**
+The endpoint is `/api/v0/bem/calculate`. V0 signals pre-production stability. Breaking changes to response field names or structure could silently break Wattprint's output (charts, scores, upgrade rankings) without any version error. A changelog, deprecation notices, or even a `/api/v1` path when the schema stabilizes would make it production-safe.
+
+**10. No async / webhook option for long calculations.**
+All calculations are synchronous and take 5–15 seconds. At scale, this means holding open HTTP connections per user. A `POST /calculations` that returns a job ID and lets you poll or webhook on completion would enable better infra design — especially for batch processing (e.g., an agent running reports on 50 listings simultaneously).
+
+---
+
+### Summary scorecard
+
+| Capability | Rating | Notes |
+|---|---|---|
+| Address-only input | ★★★★★ | Best possible DX for consumer products |
+| End-use disaggregation | ★★★★★ | Rare, essential, well-structured |
+| Fossil fuel + emissions | ★★★★☆ | Complete; emissions factor transparency would add ★ |
+| Monthly granularity | ★★★★★ | Chart-ready out of the box |
+| Scenario modeling | ★★☆☆☆ | Parameters exist but docs + field mapping incomplete |
+| Upgrade costs | ★☆☆☆☆ | Not in API; must be approximated |
+| Incentive data | ★☆☆☆☆ | Not in API; requires separate integrations |
+| Address validation | ★☆☆☆☆ | No lightweight pre-check available |
+| Documentation / field schema | ★★☆☆☆ | Field discovery by trial and error |
+| Stability / versioning | ★★☆☆☆ | V0 carries real breakage risk in production |
+
+**Bottom line:** The Palmetto EI API's core — address-based energy modeling with end-use disaggregation — is genuinely differentiated and immediately usable. The gap is everything *around* the baseline: scenarios, costs, incentives, and validation. Closing those gaps would make it a complete platform rather than a powerful but partial primitive. For V0, the baseline quality is impressive; the path to V1 is clear.
 
 1. **Accuracy disclosure** — What language should accompany upgrade cost estimates? They're industry averages, not quotes. "Estimated install cost" language is used today but may need a more explicit disclaimer.
 
