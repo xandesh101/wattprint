@@ -76,16 +76,16 @@ export default function LandingPage() {
           <div className="pt-20 pb-16 text-center space-y-6">
             <div className="inline-flex items-center gap-2 bg-[#FEF4F2] text-primary text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full border border-primary/20">
               <Zap className="w-3 h-3" />
-              AI-Powered · Palmetto EI API
+              Palmetto Energy Intelligence
             </div>
 
             <h1 className="text-5xl sm:text-6xl font-bold tracking-tight text-[#1F2723] leading-[1.08] max-w-3xl mx-auto">
               Know your home&apos;s full<br />
-              <span className="text-primary">energy story</span> — instantly.
+              <span className="text-primary">energy story.</span> Instantly.
             </h1>
 
             <p className="text-lg text-[#1F2723]/60 max-w-xl mx-auto leading-relaxed">
-              Wattprint&apos;s AI agent analyzes your home, models upgrade scenarios with live data, and finds every available incentive — automatically.
+              Wattprint&apos;s AI agent analyzes your home, models upgrade scenarios with live data, and tracks down every available incentive. No digging required.
             </p>
           </div>
 
@@ -138,7 +138,7 @@ export default function LandingPage() {
                 </button>
 
                 <p className="text-xs text-[#1F2723]/40 text-center">
-                  No account required · Report ready in ~60 seconds
+                  No account needed. Takes about 60 seconds.
                 </p>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-3 gap-3 mt-6">
               {[
                 { icon: BarChart2, label: 'Upgrade ROI', sub: 'Live Palmetto data' },
-                { icon: DollarSign, label: 'All incentives', sub: 'Federal · State · Utility' },
+                { icon: DollarSign, label: 'All incentives', sub: 'Federal, state and utility' },
                 { icon: Leaf, label: 'Carbon impact', sub: 'Annual CO₂ modeled' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="bg-[#F8F8F8] border border-[#DDDDDD] rounded p-4 text-center space-y-1.5">
@@ -167,8 +167,8 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
               {[
                 { step: '01', title: 'Enter your address', body: 'Wattprint AI connects to the Palmetto Energy Intelligence API to model your home\'s energy profile.' },
-                { step: '02', title: 'AI analyzes & models', body: 'The agent runs upgrade scenarios — solar, heat pumps, insulation — using real building-science models.' },
-                { step: '03', title: 'Get your full report', body: 'See your energy score, upgrade ROI, available incentives, and the current energy market landscape.' },
+                { step: '02', title: 'AI analyzes and models', body: 'The agent runs upgrade scenarios for solar, heat pumps and insulation using real building science models.' },
+                { step: '03', title: 'Get your full report', body: 'See your energy score, upgrade savings, available incentives and where the energy market is headed.' },
               ].map(({ step, title, body }) => (
                 <div key={step} className="space-y-3">
                   <div className="text-3xl font-bold text-primary/20">{step}</div>
@@ -190,7 +190,7 @@ export default function LandingPage() {
             <span className="text-xs font-semibold text-[#1F2723]">Wattprint</span>
           </div>
           <p className="text-xs text-[#1F2723]/40">
-            Powered by Palmetto Energy Intelligence API · © 2026
+            Powered by Palmetto Energy Intelligence API. © 2026
           </p>
         </div>
       </footer>

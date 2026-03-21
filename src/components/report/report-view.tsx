@@ -222,7 +222,7 @@ export function ReportView({
             </div>
             <div>
               <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-                AI Analysis
+                What the AI found
               </p>
               <p className="text-sm leading-relaxed">{parsed.summary}</p>
             </div>
@@ -321,7 +321,7 @@ export function ReportView({
       <Separator />
 
       <p className="text-xs text-muted-foreground text-center pb-4">
-        Powered by Palmetto Energy Intelligence API · Data modeled from property records and local utility rates · Upgrade costs are industry estimates
+        Powered by Palmetto Energy Intelligence API. Data modeled from property records and local utility rates. Upgrade costs are industry averages.
       </p>
     </div>
   )

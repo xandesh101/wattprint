@@ -136,7 +136,7 @@ function ReportPageInner() {
             <AgentPanel steps={steps} isDone={false} />
 
             <p className="text-xs text-[#1F2723]/40 text-center">
-              {elapsed > 0 ? `${elapsed}s elapsed · ` : ''}This takes about 60 seconds · please keep this tab open
+              {elapsed > 0 ? `${elapsed}s elapsed. ` : ''}This takes about 60 seconds. Keep this tab open.
             </p>
           </div>
         </div>
@@ -153,7 +153,7 @@ function ReportPageInner() {
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-base tracking-tight text-[#1F2723]">Wattprint</span>
-          <span className="text-xs text-[#1F2723]/40 hidden sm:block">· Home Energy Intelligence Report</span>
+          <span className="text-xs text-[#1F2723]/40 hidden sm:block">Home Energy Intelligence Report</span>
           <Link href="/" className="ml-auto text-xs text-[#1F2723]/50 hover:text-primary flex items-center gap-1 transition-colors font-medium">
             <ArrowLeft className="w-3.5 h-3.5" /> New report
           </Link>

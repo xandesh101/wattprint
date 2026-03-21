@@ -71,7 +71,7 @@ export function MarketLandscape({ data }: MarketLandscapeProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold">Residential Energy Market Landscape</h2>
-        <span className="text-xs text-muted-foreground">US market · 2025–2026</span>
+        <span className="text-xs text-muted-foreground">US market, 2025</span>
       </div>
 
       {/* Stat grid */}

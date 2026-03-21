@@ -20,12 +20,12 @@ export default async function SharedReportPage({ params }: { params: Promise<{ t
             <Zap className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-base tracking-tight text-[#1F2723]">Wattprint</span>
-          <span className="text-xs text-[#1F2723]/40 ml-1">· Shared Report</span>
+          <span className="text-xs text-[#1F2723]/40 ml-1">Shared Report</span>
           <Link
             href="/"
             className="ml-auto text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
           >
-            Generate your own report →
+            Generate your own report
           </Link>
         </div>
       </header>

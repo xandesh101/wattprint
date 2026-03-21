@@ -31,7 +31,7 @@ export function AgentPanel({ steps, isDone, collapsed = false }: AgentPanelProps
             </p>
             {isDone && (
               <p className="text-xs text-muted-foreground">
-                {steps.filter(s => s.status === 'done').length} data sources · click to expand
+                {steps.filter(s => s.status === 'done').length} data sources. Click to expand.
               </p>
             )}
           </div>
@@ -80,7 +80,7 @@ export function AgentPanel({ steps, isDone, collapsed = false }: AgentPanelProps
           {!isDone && steps.length > 0 && (
             <div className="pt-2 pb-1">
               <p className="text-xs text-muted-foreground italic">
-                AI agent analyzing data with the Palmetto Energy Intelligence API…
+                Working through the Palmetto Energy Intelligence API now...
               </p>
             </div>
           )}
@@ -89,7 +89,7 @@ export function AgentPanel({ steps, isDone, collapsed = false }: AgentPanelProps
             <div className="pt-3 pb-1 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <p className="text-xs text-muted-foreground">
-                Report complete · all data sourced from Palmetto Energy Intelligence API
+                Report complete. All data from Palmetto Energy Intelligence API.
               </p>
             </div>
           )}
