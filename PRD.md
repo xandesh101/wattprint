@@ -259,6 +259,8 @@ Next.js App (Railway — persistent Node.js process)
 
 This section reflects direct experience building on `POST /api/v0/bem/calculate` — the single endpoint that powers all of Wattprint's energy data.
 
+The following reflects direct experience as a builder on the EI API. The intent is to surface the gaps between the current v0 capability and a production-ready platform — which I believe represents the most important near-term product opportunity for the Platform team.
+
 ---
 
 ### What the API does exceptionally well
@@ -339,14 +341,4 @@ All calculations are synchronous and take 5–15 seconds. At scale, this means h
 
 **Bottom line:** The Palmetto EI API's core — address-based energy modeling with end-use disaggregation — is genuinely differentiated and immediately usable. The gap is everything *around* the baseline: scenarios, costs, incentives, and validation. Closing those gaps would make it a complete platform rather than a powerful but partial primitive. For V0, the baseline quality is impressive; the path to V1 is clear.
 
-1. **Accuracy disclosure** — What language should accompany upgrade cost estimates? They're industry averages, not quotes. "Estimated install cost" language is used today but may need a more explicit disclaimer.
-
-2. **Scope of "relevant upgrades"** — The current agent models up to 5 upgrades. Are there home profiles where this misses important opportunities (e.g., EV charger for a home with an EV)?
-
-3. **Agent loop determinism** — Claude occasionally skips a tool call or calls them out of order. The system prompt enforces sequence, but should we add explicit validation of tool call order?
-
-4. **MCP server scaling** — The MCP server holds one SSE connection per active report. At scale, this needs connection pooling or a stateless architecture.
-
-5. **Palmetto EI API coverage** — What % of US addresses return a valid baseline? Rural addresses, newly-built homes, and condos may have lower coverage. No data on this yet.
-
-6. **Competitive moat** — The core report logic can be replicated by anyone with a Palmetto API key. The moat is UX, distribution, and integrations. What's the fastest path to a distribution partnership (MLS, title company, mortgage lender)?
+The fastest path to defensibility is distribution partnerships — MLS integrations, title companies, mortgage lenders — which Palmetto's existing B2B network is uniquely positioned to unlock.
