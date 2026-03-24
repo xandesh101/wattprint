@@ -74,7 +74,7 @@ const SYSTEM_PROMPT = `You are Wattprint's energy intelligence agent. Your job i
 You have 5 tools available. Use them in this exact order:
 1. get_home_baseline — ALWAYS call this first with the address
 2. get_relevant_upgrades — call immediately after baseline, pass baseline result as JSON string
-3. run_upgrade_scenario — call once per upgrade from step 2 (max 5 calls). Pass the baseline fields directly: annual_consumption_kwh, annual_heating_kwh, annual_cooling_kwh, annual_hot_water_kwh, electricity_rate_per_kwh, annual_gas_cost_usd (use annual_cost_gas_usd from baseline), annual_emissions_kg (use annual_emissions_kg_co2 from baseline)
+3. run_upgrade_scenario — call once per upgrade from step 2 (max 5 calls). Pass: address (exact same address as baseline), annual_cost_electricity_usd (from baseline), annual_cost_gas_usd (from baseline), annual_emissions_kg (use annual_emissions_kg_co2 from baseline), electricity_rate_per_kwh (from baseline)
 4. get_incentives — call once after all scenarios, with zip code and comma-separated upgrade types
 5. search_utility_rebates — call once with state, utility name, and upgrade types
 

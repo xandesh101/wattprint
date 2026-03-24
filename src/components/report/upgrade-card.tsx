@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { TrendingUp, Clock, Leaf, DollarSign } from 'lucide-react'
+import { Clock, Leaf, DollarSign } from 'lucide-react'
 
 interface UpgradeCardProps {
   rank: number
@@ -29,15 +29,16 @@ const upgradeCategory: Record<string, string> = {
   ev_charger: 'EV',
 }
 
+const systemSizeNote: Record<string, string> = {
+  solar_5kw: '5kW solar array',
+  solar_10kw: '10kW solar array',
+  solar_plus_battery: '8kW solar array + battery storage',
+}
+
 export function UpgradeCard({
   rank, label, upgrade_type, upfront_cost_usd,
-  annual_savings_usd, payback_years, roi_10yr_pct,
-  carbon_reduction_kg, priority,
+  annual_savings_usd, payback_years, carbon_reduction_kg, priority,
 }: UpgradeCardProps) {
-  const roiBarWidth = roi_10yr_pct != null
-    ? Math.min(Math.max(roi_10yr_pct, 0), 200) / 200 * 100
-    : 0
-
   return (
     <div className="bg-card border border-border rounded-xl p-5 space-y-4">
       {/* Header */}
@@ -49,6 +50,9 @@ export function UpgradeCard({
           <div>
             <p className="font-semibold text-sm">{label}</p>
             <p className="text-xs text-muted-foreground">{upgradeCategory[upgrade_type] ?? upgrade_type}</p>
+            {systemSizeNote[upgrade_type] && (
+              <p className="text-xs text-muted-foreground/70 mt-0.5">{systemSizeNote[upgrade_type]}</p>
+            )}
           </div>
         </div>
         <Badge variant="outline" className={`text-xs shrink-0 ${priorityColor[priority]}`}>
@@ -56,13 +60,13 @@ export function UpgradeCard({
         </Badge>
       </div>
 
-      {/* Key metrics */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Key metrics — 3 columns */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="space-y-0.5">
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <DollarSign className="w-3 h-3" /> Annual savings
           </p>
-          <p className="text-lg font-bold text-primary">
+          <p className="text-base font-bold text-primary">
             ${annual_savings_usd.toLocaleString()}
           </p>
         </div>
@@ -70,45 +74,21 @@ export function UpgradeCard({
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="w-3 h-3" /> Payback
           </p>
-          <p className="text-lg font-bold">
+          <p className="text-base font-bold">
             {payback_years != null ? `${payback_years} yrs` : 'N/A'}
-          </p>
-        </div>
-        <div className="space-y-0.5">
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" /> 10-yr ROI
-          </p>
-          <p className="text-lg font-bold">
-            {roi_10yr_pct != null ? `${roi_10yr_pct}%` : 'N/A'}
           </p>
         </div>
         <div className="space-y-0.5">
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Leaf className="w-3 h-3" /> CO₂ saved
           </p>
-          <p className="text-lg font-bold">
+          <p className="text-base font-bold">
             {carbon_reduction_kg > 0
               ? `${(carbon_reduction_kg / 1000).toFixed(1)}t`
               : '—'}
           </p>
         </div>
       </div>
-
-      {/* ROI bar */}
-      {roi_10yr_pct != null && roi_10yr_pct > 0 && (
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>10-yr ROI</span>
-            <span>{roi_10yr_pct}%</span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${roiBarWidth}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Install cost */}
       <p className="text-xs text-muted-foreground">
