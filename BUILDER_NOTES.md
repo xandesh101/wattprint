@@ -14,7 +14,7 @@ I wanted to explore how far you could push the Palmetto Energy Intelligence API 
 
 **No authentication.** The instinct when building anything with user data is to add accounts from the start. I pushed against that here. Every step in an onboarding flow loses roughly 30% of users, and for a demo the goal was to prove the concept end to end with zero friction. Clerk and Supabase are wired into the project and ready to go when that changes, but they're off for now.
 
-**Agentic loop over a single structured API call.** An alternative design would be to pre-fetch everything server-side and hand it all to Claude in one go. I chose the agentic loop instead because Claude actually needs to reason over the baseline to decide which upgrades are worth modeling — it's not just formatting. A home with gas heating gets different upgrade recommendations than an all-electric home. That reasoning step is genuine and the loop is the honest way to implement it.
+**Agentic loop over a single structured API call.** An alternative design would be to pre-fetch everything server-side and hand it all to Claude in one go. I chose the agentic loop instead because Claude actually needs to reason over the baseline to decide which upgrades are worth modeling, it's not just formatting. A home with gas heating gets different upgrade recommendations than an all-electric home. That reasoning step is genuine and the loop is the honest way to implement it.
 
 **MCP in a separate service.** The Palmetto tools live in a dedicated Node.js MCP server rather than inlined into the Next.js app. This added a network hop but means the tool layer can be updated, versioned, and tested independently. The same MCP server could serve Claude Desktop or other agents without touching the report generation logic. For a project meant to demonstrate real MCP architecture it felt important to do it properly rather than take the shortcut.
 
@@ -60,8 +60,6 @@ Add a short calibration step before the report runs. Even one month of real kWh 
 
 Validate the scenario hypothetical parameters properly. Right now if a parameter name is wrong the API returns baseline costs and the savings figure comes out as zero. I'd want to run a test suite against known addresses to confirm which hypothetical keys Palmetto actually applies before showing savings numbers to users.
 
-Persist reports to a database. The in-memory approach was fine for the demo but share links breaking on deploy is not acceptable in production. Upstash Redis is the obvious next step.
+Persist reports to a database. The in-memory approach was fine for the demo but share links breaking on deploy is not acceptable in production.
 
 ---
-
-*Built March 2026 as an exploration of the Palmetto EI API and agentic AI architecture with Claude and MCP.*
