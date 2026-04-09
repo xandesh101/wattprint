@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Zap, MapPin, Loader2, ArrowRight, BarChart2, DollarSign, Leaf } from 'lucide-react'
+import { Zap, MapPin, Loader2, ArrowRight, BarChart2, DollarSign, Leaf, TrendingUp, Map, Sparkles } from 'lucide-react'
 
 interface MapboxSuggestion {
   name: string
@@ -52,6 +52,15 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+
+      {/* Announcement banner */}
+      <div className="bg-[#1F2723] text-white text-xs py-2.5 px-6 flex items-center justify-center gap-2">
+        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span className="font-medium">
+          Wattprint just got smarter —
+        </span>
+        <span className="text-white/70">live market rates and region-adjusted install costs now included in every report.</span>
+      </div>
 
       {/* Nav */}
       <header className="border-b border-[#DDDDDD] bg-white">
@@ -156,6 +165,38 @@ export default function LandingPage() {
                   <p className="text-xs text-[#1F2723]/50">{sub}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* What's new */}
+          <div className="max-w-2xl mx-auto pb-16">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#1F2723]/40">What&apos;s new</span>
+              <div className="flex-1 h-px bg-[#DDDDDD]" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="border border-primary/30 bg-[#FEF4F2] rounded-lg p-5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-[#1F2723]">Live market data</p>
+                </div>
+                <p className="text-xs text-[#1F2723]/60 leading-relaxed">
+                  Electricity rates, solar adoption, and heat pump trends in your report now come from a live web search — not static training data.
+                </p>
+              </div>
+              <div className="border border-primary/30 bg-[#FEF4F2] rounded-lg p-5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                    <Map className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <p className="text-sm font-semibold text-[#1F2723]">Region-adjusted costs</p>
+                </div>
+                <p className="text-xs text-[#1F2723]/60 leading-relaxed">
+                  Install costs for solar, heat pumps, and insulation are now adjusted for your state&apos;s labor market and permitting costs.
+                </p>
+              </div>
             </div>
           </div>
 
