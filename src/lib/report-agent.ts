@@ -228,8 +228,25 @@ export async function generateReport(
         for (const block of response.content) {
           if (block.type !== 'tool_use') continue
 
-          // web_search is executed server-side by Anthropic — skip client dispatch
-          if (block.name === 'web_search') continue
+          if (block.name === 'web_search') {
+            // web_search results come back in the same response as a web_search_tool_result block.
+            // We need to find that block and pass it back as a tool_result to continue the loop.
+            onStep?.({ tool: 'web_search', status: 'calling', label: 'Fetching live market data' })
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const resultBlock = (response.content as any[]).find(
+              (b: any) => b.type === 'web_search_tool_result' && b.tool_use_id === block.id
+            )
+
+            onStep?.({ tool: 'web_search', status: 'done', label: 'Fetching live market data', summary: 'Live market data retrieved' })
+
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: resultBlock?.content ?? 'No results found',
+            })
+            continue
+          }
 
           const input = block.input as Record<string, unknown>
           const label = getToolLabel(block.name, input)
@@ -252,11 +269,7 @@ export async function generateReport(
           })
         }
 
-        // Only push tool results if there are client-side tools to report back
-        // (web_search results are handled server-side and don't appear here)
-        if (toolResults.length > 0) {
-          messages.push({ role: 'user', content: toolResults })
-        }
+        messages.push({ role: 'user', content: toolResults })
       }
     }
   } finally {
