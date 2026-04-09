@@ -16,7 +16,6 @@ const TOOL_LABELS: Record<string, string> = {
   run_upgrade_scenario: 'Modeling upgrade scenario',
   get_incentives: 'Fetching available incentives',
   search_utility_rebates: 'Searching utility rebate programs',
-  web_search: 'Fetching live market data',
 }
 
 function getToolLabel(name: string, input: Record<string, unknown>): string {
@@ -67,22 +66,119 @@ function extractSummary(toolName: string, result: string): string {
   } catch {
     // result wasn't JSON — that's fine
   }
-  if (toolName === 'web_search') return 'Live market data retrieved'
   return 'Complete'
 }
 
-const SYSTEM_PROMPT = `You are Wattprint's energy intelligence agent. Your job is to analyze a home's energy profile and generate a detailed Home Energy Intelligence Report.
+// ---------------------------------------------------------------------------
+// Market data pre-fetch
+// Runs a separate mini agent loop with web_search BEFORE the main report loop
+// so live stats can be injected into the system prompt without interfering
+// with the Palmetto tool calls.
+// ---------------------------------------------------------------------------
 
-You have tools available. Use them in this exact order:
+interface MarketData {
+  avg_us_electricity_rate_kwh: number
+  yoy_rate_increase_pct: number
+  residential_solar_gw_installed: number
+  heat_pump_sales_growth_pct: number
+  us_grid_clean_pct: number
+  highlights: string[]
+}
+
+async function fetchMarketData(): Promise<MarketData | null> {
+  const messages: Anthropic.MessageParam[] = [{
+    role: 'user',
+    content: `Search for current US residential energy market statistics (2024–2025 data):
+1. Average US residential electricity rate in cents/kWh
+2. Year-over-year electricity rate increase percentage
+3. Total US cumulative residential solar installations in GW
+4. Recent annual growth % in US heat pump sales
+5. Approximate % of US electricity from clean sources
+
+After searching, return ONLY this JSON object with no other text:
+{
+  "avg_us_electricity_rate_kwh": <number in USD e.g. 0.17>,
+  "yoy_rate_increase_pct": <number e.g. 3.5>,
+  "residential_solar_gw_installed": <number e.g. 50>,
+  "heat_pump_sales_growth_pct": <number e.g. 15>,
+  "us_grid_clean_pct": <number e.g. 21>,
+  "highlights": [
+    "<specific stat with source about US electricity rates>",
+    "<stat about US solar adoption>",
+    "<stat about heat pumps or electrification>",
+    "<stat about US residential carbon or emissions>"
+  ]
+}`,
+  }]
+
+  for (let i = 0; i < 6; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await (anthropic.messages.create as any)(
+      {
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
+        messages,
+      },
+      { headers: { 'anthropic-beta': 'web-search-2025-03-05' } }
+    )
+
+    messages.push({ role: 'assistant', content: response.content })
+
+    if (response.stop_reason === 'end_turn') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const text = (response.content as any[])
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join('\n')
+      const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+      const jsonStr = fenceMatch ? fenceMatch[1] : (text.match(/\{[\s\S]*\}/) ?? [])[0]
+      if (jsonStr) {
+        try { return JSON.parse(jsonStr) } catch { /* fall through */ }
+      }
+      return null
+    }
+
+    if (response.stop_reason === 'tool_use') {
+      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const block of response.content as any[]) {
+        if (block.type !== 'tool_use' || block.name !== 'web_search') continue
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const resultBlock = (response.content as any[]).find(
+          (b: any) => b.type === 'web_search_tool_result' && b.tool_use_id === block.id
+        )
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: block.id,
+          content: resultBlock?.content ?? 'No results found',
+        })
+      }
+      if (toolResults.length > 0) {
+        messages.push({ role: 'user', content: toolResults })
+      }
+    }
+  }
+
+  return null
+}
+
+function buildSystemPrompt(marketData: MarketData | null): string {
+  const marketSection = marketData
+    ? `CURRENT MARKET DATA (fetched live — use these exact numbers for market_landscape):
+${JSON.stringify(marketData, null, 2)}`
+    : `Use your best knowledge of current US energy market statistics for market_landscape.`
+
+  return `You are Wattprint's energy intelligence agent. Your job is to analyze a home's energy profile and generate a detailed Home Energy Intelligence Report.
+
+${marketSection}
+
+You have 5 tools available. Use them in this exact order:
 1. get_home_baseline — ALWAYS call this first with the address
 2. get_relevant_upgrades — call immediately after baseline, pass baseline result as JSON string
 3. run_upgrade_scenario — call once per upgrade from step 2 (max 5 calls). Pass: address (exact same address as baseline), annual_cost_electricity_usd (from baseline), annual_cost_gas_usd (from baseline), annual_emissions_kg (use annual_emissions_kg_co2 from baseline), electricity_rate_per_kwh (from baseline)
 4. get_incentives — call once after all scenarios, with zip code and comma-separated upgrade types
 5. search_utility_rebates — call once with state, utility name, and upgrade types
-6. web_search — run exactly 2 searches to get CURRENT market statistics for the market_landscape section:
-   - Search 1: "US average residential electricity rate cents per kWh 2025"
-   - Search 2: "US residential solar installations gigawatts 2024 2025 heat pump sales growth"
-   Use the numbers you find in these searches — NOT your training data — for all numeric fields in market_landscape.
 
 After all tool calls are complete, generate a structured JSON report with this exact shape:
 {
@@ -118,18 +214,13 @@ After all tool calls are complete, generate a structured JSON report with this e
   "state": "<2-letter state>",
   "zip_code": "<zip>",
   "market_landscape": {
-    "avg_us_electricity_rate_kwh": <current national average in USD from your web search — do not guess>,
-    "yoy_rate_increase_pct": <annual electricity rate increase % from your web search>,
-    "residential_solar_gw_installed": <cumulative US residential solar GW installed from your web search>,
-    "heat_pump_sales_growth_pct": <recent annual growth % in US heat pump sales from your web search>,
+    "avg_us_electricity_rate_kwh": <from CURRENT MARKET DATA above>,
+    "yoy_rate_increase_pct": <from CURRENT MARKET DATA above>,
+    "residential_solar_gw_installed": <from CURRENT MARKET DATA above>,
+    "heat_pump_sales_growth_pct": <from CURRENT MARKET DATA above>,
     "ira_credit_expiry": "2032",
-    "us_grid_clean_pct": <approximate % of US electricity from clean sources from your web search>,
-    "highlights": [
-      "<cite a specific stat with source from your web search about US electricity rates or solar>",
-      "<factual stat relevant to this home's state from your web search or known regional data>",
-      "<factual stat about home upgrade ROI or payback trends from your web search>",
-      "<factual stat about carbon or emissions from US residential sector>"
-    ]
+    "us_grid_clean_pct": <from CURRENT MARKET DATA above>,
+    "highlights": <highlights array from CURRENT MARKET DATA above>
   }
 }
 
@@ -152,6 +243,7 @@ Rank upgrades by annual_savings_usd descending. Label them clearly:
 - ev_charger → "EV Charger (Level 2)"
 
 Return ONLY the JSON object. No markdown, no explanation.`
+}
 
 export interface ReportResult {
   reportJson: string
@@ -163,6 +255,16 @@ export async function generateReport(
   address: string,
   onStep?: (step: AgentStep) => void
 ): Promise<ReportResult> {
+  // Step 0: fetch live market data before connecting to Palmetto
+  onStep?.({ tool: 'market_data', status: 'calling', label: 'Fetching live market data' })
+  const marketData = await fetchMarketData().catch(() => null)
+  onStep?.({
+    tool: 'market_data',
+    status: 'done',
+    label: 'Fetching live market data',
+    summary: marketData ? 'Live rates and trends retrieved' : 'Using estimated market data',
+  })
+
   onStep?.({ tool: 'init', status: 'calling', label: 'Connecting to energy data APIs' })
   const mcpClient = await createMcpClient()
   onStep?.({ tool: 'init', status: 'done', label: 'Connecting to energy data APIs', summary: 'Palmetto Energy Intelligence API ready' })
@@ -172,28 +274,20 @@ export async function generateReport(
       { role: 'user', content: `Generate a Home Energy Intelligence Report for: ${address}` },
     ]
 
+    const systemPrompt = buildSystemPrompt(marketData)
+
     while (true) {
-      const response = await anthropic.messages.create(
-        {
-          model: 'claude-sonnet-4-6',
-          max_tokens: 4096,
-          system: SYSTEM_PROMPT,
-          tools: [
-            ...mcpClient.tools.map(t => ({
-              name: t.name,
-              description: t.description,
-              input_schema: t.input_schema,
-            })),
-            {
-              type: 'web_search_20250305' as const,
-              name: 'web_search',
-              max_uses: 3,
-            },
-          ],
-          messages,
-        },
-        { headers: { 'anthropic-beta': 'web-search-2025-03-05' } }
-      )
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: systemPrompt,
+        tools: mcpClient.tools.map(t => ({
+          name: t.name,
+          description: t.description,
+          input_schema: t.input_schema,
+        })),
+        messages,
+      })
 
       messages.push({ role: 'assistant', content: response.content })
 
@@ -227,26 +321,6 @@ export async function generateReport(
 
         for (const block of response.content) {
           if (block.type !== 'tool_use') continue
-
-          if (block.name === 'web_search') {
-            // web_search results come back in the same response as a web_search_tool_result block.
-            // We need to find that block and pass it back as a tool_result to continue the loop.
-            onStep?.({ tool: 'web_search', status: 'calling', label: 'Fetching live market data' })
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const resultBlock = (response.content as any[]).find(
-              (b: any) => b.type === 'web_search_tool_result' && b.tool_use_id === block.id
-            )
-
-            onStep?.({ tool: 'web_search', status: 'done', label: 'Fetching live market data', summary: 'Live market data retrieved' })
-
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: resultBlock?.content ?? 'No results found',
-            })
-            continue
-          }
 
           const input = block.input as Record<string, unknown>
           const label = getToolLabel(block.name, input)
